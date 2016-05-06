@@ -149,7 +149,7 @@ class Swift(object):
                     yield chunk
                     chunk = next(iterator)
             finally:
-                self.emit_event(env, input_proxy.bytes_received, bytes_sent)
+                self.emit_event(env, input_proxy.bytes_received, bytes_sent, start_response=start_response_args[0])
 
         try:
             iterable = self._app(env, my_start_response)
@@ -160,7 +160,7 @@ class Swift(object):
             return iter_response(iterable)
 
     @_log_and_ignore_error
-    def emit_event(self, env, bytes_received, bytes_sent, outcome='success'):
+    def emit_event(self, env, bytes_received, bytes_sent, outcome='success', start_response=None):
         if ((env.get('HTTP_X_SERVICE_PROJECT_ID') or
                 env.get('HTTP_X_PROJECT_ID') or
                 env.get('HTTP_X_TENANT_ID')) in self.ignore_projects or
@@ -212,6 +212,10 @@ class Swift(object):
             if header.upper() in headers:
                 resource_metadata['http_header_%s' % header] = headers.get(
                     header.upper())
+            for arg in start_response[1]:
+                h = arg[0].strip().replace('-', '_').lower()
+                if header.upper() in h.upper():
+                    resource_metadata['http_header_%s' % h] = arg[1]
 
         # build object store details
         target = cadf_resource.Resource(
